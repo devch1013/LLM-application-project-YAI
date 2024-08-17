@@ -6,19 +6,21 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
+import default_prompt
+from dotenv import load_dotenv
+
+load_dotenv(".env_hf")
 
 # 1. Configuration
 max_seq_length = 2048
 dtype = None
 load_in_4bit = True 
-alpaca_prompt = """
-<|start_header_id|>system<|end_header_id|>{}<|eot_id|><|start_header_id|>user<|end_header_id|>{}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{}<|end_of_text|>
-"""
+alpaca_prompt = default_prompt.llama_instruct_prompt_for_train
 
 instruction = "Answer user's question"
 input = "YAI가 뭐야?"
 huggingface_model_name = "devch1013/YAILLAMA"
-local_save_name = "fine_tune_500_inst"
+local_save_name = "llama_weights/fine_tune_200_inst"
 
 # 2. Before Training
 print("Before Training")
@@ -34,9 +36,9 @@ FastLanguageModel.for_inference(model) # Enable native 2x faster inference
 inputs = tokenizer(
 [
     alpaca_prompt.format(
-        instruction, # instruction
-        input, # input
-        "", # output - leave this blank for generation!
+        system=instruction, # instruction
+        user=input, # input
+        answer="", # output - leave this blank for generation!
     )
 ], return_tensors = "pt").to("cuda")
 
@@ -48,19 +50,19 @@ print("Load Data")
 EOS_TOKEN = tokenizer.eos_token # Must add EOS_TOKEN
 def formatting_prompts_func(examples):
     # instructions = examples["instruction"]
-    instructions = ["Answer users' questions"] * len(examples["question"])
+    instructions = ["Answer user's questions"] * len(examples["question"])
     inputs       = examples["question"]
     outputs      = examples["answer"]
     texts = []
     for instruction, input, output in zip(instructions, inputs, outputs):
-        text = alpaca_prompt.format(instruction, input, output)
+        text = alpaca_prompt.format(system=instruction, user=input, answer=output)
         texts.append(text)
         # print(texts)
         # return 
     return { "text" : texts, }
 pass
 # dataset = load_dataset("iamtarun/python_code_instructions_18k_alpaca", split = "train")
-dataset = load_dataset('csv', data_files='YAI_project/output.csv', split="train")
+dataset = load_dataset('csv', data_files='/home/elicer/LLM_project_YAI/llm/llama/output.csv', split="train")
 print(dataset)
 
 dataset = dataset.map(formatting_prompts_func, batched = True,)
@@ -90,10 +92,10 @@ trainer = SFTTrainer(
     dataset_num_proc = 2,
     packing = False, # Can make training 5x faster for short sequences.
     args = TrainingArguments(
-        per_device_train_batch_size = 64,
+        per_device_train_batch_size = 16,
         gradient_accumulation_steps = 4,
         warmup_steps = 5,
-        num_train_epochs = 500, # Set this for 1 full training run.
+        num_train_epochs = 200, # Set this for 1 full training run.
         # max_steps = 2000,
         learning_rate = 2e-4,
         fp16 = not is_bfloat16_supported(),
