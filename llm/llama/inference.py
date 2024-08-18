@@ -14,7 +14,7 @@ instruction = "사용자가 물어보는 질문에 답변해줘"
 # 2. Before Training
 print("Before Training")
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name="/home/elicer/llama_train/fine_tune_500_inst",
+    model_name="/home/elicer/LLM_project_YAI/llm/llama/llama_weights/fine_tune_200_inst",
     # model_name = "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit",
     max_seq_length=max_seq_length,
     dtype=dtype,
@@ -28,7 +28,7 @@ while True:
     inputs = tokenizer(
         [
             alpaca_prompt.format(
-                system = "Answer user's question",  # instruction
+                system = "You are Yaibot. You have to answer user's question",  # instruction
                 user = input_text,  # input
                 # "", # output - leave this blank for generation!
             )

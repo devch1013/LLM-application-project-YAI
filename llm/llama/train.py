@@ -9,7 +9,7 @@ from unsloth import is_bfloat16_supported
 import default_prompt
 from dotenv import load_dotenv
 
-load_dotenv(".env_hf")
+load_dotenv(".env_secret")
 
 # 1. Configuration
 max_seq_length = 2048
@@ -131,19 +131,19 @@ print(f"Peak reserved memory % of max memory = {used_percentage} %.")
 print(f"Peak reserved memory for training % of max memory = {lora_percentage} %.")
 
 
-# 5. After Training
-FastLanguageModel.for_inference(model) # Enable native 2x faster inference
-inputs = tokenizer(
-[
-    alpaca_prompt.format(
-        instruction, # instruction
-        input, # input
-        "", # output - leave this blank for generation!
-    )
-], return_tensors = "pt").to("cuda")
+# # 5. After Training
+# FastLanguageModel.for_inference(model) # Enable native 2x faster inference
+# inputs = tokenizer(
+# [
+#     alpaca_prompt.format(
+#         instruction, # instruction
+#         input, # input
+#         "", # output - leave this blank for generation!
+#     )
+# ], return_tensors = "pt").to("cuda")
 
-text_streamer = TextStreamer(tokenizer)
-_ = model.generate(**inputs, streamer = text_streamer, max_new_tokens = 1000)
+# text_streamer = TextStreamer(tokenizer)
+# _ = model.generate(**inputs, streamer = text_streamer, max_new_tokens = 1000)
 
 # 6. Saving
 model.save_pretrained(local_save_name) # Local saving
