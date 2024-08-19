@@ -8,8 +8,13 @@ from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
 import default_prompt
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv(".env_secret")
+# 프로젝트의 루트 디렉토리로 경로 설정
+env_path = Path(__file__).resolve().parent.parent / '.env-secret'
+
+# .env-secret 파일 로드
+load_dotenv(dotenv_path=env_path)
 
 # 1. Configuration
 max_seq_length = 2048
@@ -20,7 +25,7 @@ alpaca_prompt = default_prompt.llama_instruct_prompt_for_train
 instruction = "Answer user's question"
 input = "YAI가 뭐야?"
 huggingface_model_name = "devch1013/YAILLAMA"
-local_save_name = "llama_weights/fine_tune_200_inst"
+local_save_name = "llama_weights/fine_tune_100_inst"
 
 # 2. Before Training
 print("Before Training")
@@ -95,7 +100,7 @@ trainer = SFTTrainer(
         per_device_train_batch_size = 16,
         gradient_accumulation_steps = 4,
         warmup_steps = 5,
-        num_train_epochs = 200, # Set this for 1 full training run.
+        num_train_epochs = 100, # Set this for 1 full training run.
         # max_steps = 2000,
         learning_rate = 2e-4,
         fp16 = not is_bfloat16_supported(),
