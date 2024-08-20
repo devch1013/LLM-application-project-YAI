@@ -25,7 +25,7 @@ alpaca_prompt = default_prompt.llama_instruct_prompt_for_train
 instruction = "Answer user's question"
 input = "YAI가 뭐야?"
 huggingface_model_name = "devch1013/YAILLAMA"
-local_save_name = "llama_weights/fine_tune_100_inst"
+local_save_name = "llama_weights/fine_tune_300_inst"
 
 # 2. Before Training
 print("Before Training")
@@ -100,7 +100,7 @@ trainer = SFTTrainer(
         per_device_train_batch_size = 16,
         gradient_accumulation_steps = 4,
         warmup_steps = 5,
-        num_train_epochs = 100, # Set this for 1 full training run.
+        num_train_epochs = 300, # Set this for 1 full training run.
         # max_steps = 2000,
         learning_rate = 2e-4,
         fp16 = not is_bfloat16_supported(),

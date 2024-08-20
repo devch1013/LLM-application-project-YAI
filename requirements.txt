@@ -1,0 +1,8 @@
+llama_index
+torch
+unsloth
+discord
+python-dotenv
+peft
+accelerate
+bitsandbytes

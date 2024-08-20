@@ -3,12 +3,15 @@
 """
 
 from llama_index.legacy import VectorStoreIndex, ServiceContext
+# from llama_index.core.retrievers import VectorIndexRetriever
+# from llama_index.core.query_engine import RetrieverQueryEngine
+
 from typing import List, Dict, Any
 
-from .src.utils.load_config import LoadConfig
-from .src.utils.app_utils import load_data
-from .src.utils import arxiv_search
-# from llm.yainoma import YAINOMA
+from src.utils.load_config import LoadConfig
+from src.utils.app_utils import load_data
+from src.utils import arxiv_search
+from llm.yainoma import YAINOMA
 
 llm_format_output =   """
   #Citing sources
@@ -32,7 +35,7 @@ class ArxivRAG:
         search_results: List[Dict[Any]] = arxiv_search.scrape_papers(query, search_result_count)
         return search_results
 
-    def generate(self, question, topk = 5):
+    def generate(self, question, topk = 2):
         docs = self.get_papers(question)
         index = self.build_index(docs)
 
@@ -43,29 +46,17 @@ class ArxivRAG:
         )
 
         response = query_engine.query(question + llm_format_output)
+    
+        reference = response.source_nodes[0].get_text()
 
-        return response
-
-    def process(self, query):
-        """
-        Arxiv 검색해서 답변 생성
-        """
-        # answer = "트랜스포머는 신입니다."
-        # reference = {
-        #     "link": "https://arxiv.com/~~~",
-        #     "title": "Attention is all you need"
-        # } 출력 예시
-        return answer, reference
+        return response, reference
 
 if __name__ == "__main__":
-    # APPCFG = LoadConfig()
-
-    # papers = load_data()
     llm_model = YAINOMA()
 
     rag_system = ArxivRAG(llm_model = llm_model)
 
     query = "Tell me about RAG"
-    response = rag_system.generate(query)
+    answer, reference = rag_system.generate(query)
 
-    print(f"Question: {query} \n Answer: {response}")
+    print(f"Question: {query} \n Answer: {answer} \n Reference: {reference}")

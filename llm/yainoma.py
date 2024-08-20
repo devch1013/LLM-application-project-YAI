@@ -1,7 +1,15 @@
+"""
+작성자: 박찬혁
+"""
+
+import arxiv
 from unsloth import FastLanguageModel
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from transformers import TextStreamer
 from .llama import default_prompt
-from rag.arxiv.arxiv_RAG import ArxivRAG
+from rag.arxiv.src.utils.calculate import calculate_similarity
+from rake_nltk import Rake
 
 max_seq_length = 2048
 dtype = None
@@ -14,9 +22,9 @@ class YAINOMA:
     def __init__(
         self, model_dir="unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit", paper_rag=None
     ):
-        if YAINOMA._instance is not None:
-            ## 이미 YAINOMA가 생성되었으면 다시 생성 불가
-            raise Exception("Model already initialized!")
+        # if YAINOMA._instance is not None:
+        #     ## 이미 YAINOMA가 생성되었으면 다시 생성 불가
+        #     raise Exception("Model already initialized!")
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             # model_name = "devch1013/YAILLAMA",
@@ -30,20 +38,30 @@ class YAINOMA:
         self.llama_template = default_prompt.llama_instruct_prompt
         self.system_prompt = "Your name is YAIbot. And you have to answer the user's questions."
 
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name='BAAI/bge-m3',
+            model_kwargs={'device': 'cuda'},
+            encode_kwargs={'normalize_embeddings': True},
+        )
+
+        self.vectorstore = Chroma(persist_directory="rag/vectorstore", embedding_function=self.embeddings)
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={'k': 7})
+
+
         # self.arxivRAG = ArxivRAG(self.model)
 
-        YAINOMA._instance = self
+        # YAINOMA._instance = self
 
-    @classmethod
-    def get_instance(cls):
-        """
-        싱글톤 패턴
-        첫 초기화 이후에는 get_instance로 모델 가져오기
-        """
-        if not cls._instance:
-            raise Exception("Model not initialized!")
-        else:
-            return cls._instance
+    # @classmethod
+    # def get_instance(cls):
+    #     """
+    #     싱글톤 패턴
+    #     첫 초기화 이후에는 get_instance로 모델 가져오기
+    #     """
+    #     if not cls._instance:
+    #         raise Exception("Model not initialized!")
+    #     else:
+    #         return cls._instance
 
     def extract_answer(self, text):
         return text.split("assistant", 1)[1]
@@ -73,14 +91,62 @@ class YAINOMA:
         """
         Arxiv 문서를 검색해서 답변 생성 @박준우
         """
-        answer, reference = self.arxivRAG.process(query)
-        return answer, reference
+        ## arxiv 문서 검색
+        rake = Rake()
+        rake.extract_keywords_from_text(query)
+        keywords = rake.get_ranked_phrases()
+        refined_query = " ".join(keywords)
+        
+        searched_docs = []
+        search = arxiv.Search(
+            query=refined_query,
+            max_results=5,
+            sort_by=arxiv.SortCriterion.Relevance,
+        )
+        papers = list(search.results())
+
+        for i, p in enumerate(papers):
+            paper_doc = {
+                "url": p.pdf_url,
+                "title": p.title, 
+                "abstract": p.summary
+            }
+            searched_docs.append(paper_doc)
+
+
+        ## query 임베딩
+        query_embedding = self.embeddings.embed_query(query)
+
+        best_doc = None
+        best_score = 0
+        ## 문서 임베딩
+        for doc in searched_docs:
+            title = doc["title"]
+            abstract = doc["abstract"]
+            embedding = self.embeddings.embed_query(f"Title: {title}\n\n {abstract}")
+            score = calculate_similarity(query_embedding, embedding)
+            if score > best_score:
+                best_doc = doc
+                best_score = score
+        ## 1등으로 응답 뽑기
+        title = best_doc["title"]
+        abstract = best_doc["abstract"]
+        system_prompt = f"주어지는 글을 보고 user의 물음에 답변해라.\nTitle: {title}\n\n {abstract}"
+        answer = self.inference(system_prompt, query)
+        return answer, best_doc
 
     def general_RAG(self, query):
         """
         vectorstore의 문서로 답변 생성(blog + notion) @고동현, @김덕용
         """
-        return answer
+        print("[!] general RAG inference")
+        def format_docs(docs):
+            return '\n\n'.join([d.page_content for d in docs])
+        context_docs = self.retriever.invoke(query)
+        context = format_docs(context_docs)
+        print(context)
+
+        return self.inference(system_prompt=context, input_text=query)
 
 
 if __name__ == "__main__":
