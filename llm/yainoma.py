@@ -36,7 +36,7 @@ class YAINOMA:
         FastLanguageModel.for_inference(self.model)
         self.text_streamer = TextStreamer(self.tokenizer)
         self.llama_template = default_prompt.llama_instruct_prompt
-        self.system_prompt = "Your name is YAIbot. And you have to answer the user's questions."
+        self.system_prompt = "Your name is YAIbot. You should answer the user's questions. If it's not a question, but a general inquiry or greeting, you can answer naturally."
 
         self.embeddings = HuggingFaceEmbeddings(
             model_name='BAAI/bge-m3',
@@ -64,7 +64,7 @@ class YAINOMA:
     #         return cls._instance
 
     def extract_answer(self, text):
-        return text.split("assistant", 1)[1]
+        return text.split("assistant", 1)[1].strip()
 
     def inference(self, system_prompt, input_text):
         inputs = self.tokenizer(
@@ -92,11 +92,19 @@ class YAINOMA:
         Arxiv 문서를 검색해서 답변 생성 @박준우
         """
         ## arxiv 문서 검색
+        import re
+
+# 영어 단어만 추출
+        english_words = re.findall(r'[a-zA-Z]+', query)
+        english_text = ' '.join(english_words)
         rake = Rake()
-        rake.extract_keywords_from_text(query)
+        rake.extract_keywords_from_text(english_text)
         keywords = rake.get_ranked_phrases()
+        print("keywords: ", keywords)
         refined_query = " ".join(keywords)
-        
+
+        # keywords = self.inference("주어지는 문장에서 검색에 쓰일 가장 중요한 키워드를 영어로 뽑아줘. 한 단어만 출력해줘", query)
+        # print("llm keywords: ", keywords)
         searched_docs = []
         search = arxiv.Search(
             query=refined_query,
@@ -129,6 +137,8 @@ class YAINOMA:
                 best_doc = doc
                 best_score = score
         ## 1등으로 응답 뽑기
+        if best_doc is None:
+            return ("검색 결과가 없습니다.", None)
         title = best_doc["title"]
         abstract = best_doc["abstract"]
         system_prompt = f"주어지는 글을 보고 user의 물음에 답변해라.\nTitle: {title}\n\n {abstract}"

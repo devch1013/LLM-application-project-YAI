@@ -145,7 +145,8 @@ async def on_message(message):
             len(bot_anchor["ARXIV"]) :
         ].strip() 
         response, doc = default_model.paper_RAG(prompt)
-        response = response + "\n참고 논문: " + doc["title"] + "\n논문 링크: " + doc["url"]
+        if doc is not None:
+            response = response + "\n참고 논문: " + doc["title"] + "\n논문 링크: " + doc["url"]
 
     else:
         greeting_keywords = ["hello", "hi", "안녕하세요", "안녕", "하이"]
