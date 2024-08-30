@@ -13,3 +13,11 @@
 YAI의 정보를 학습시킨다.
 
 ---
+### 챗봇 사용 방법
+1. .env_secret.format 파일에 있는 KEY와 TOKEN 내용을 채우고 .env_secret으로 이름을 변경한다.
+2. rag 폴더 내에 사용하고싶은 vectorstore를 파일 형태로 넣는다.
+3. main.py를 실행한다.
+
+---
+### HuggingFace 모델 링크
+https://huggingface.co/devch1013/YAI-NOMA

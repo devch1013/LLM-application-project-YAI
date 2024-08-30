@@ -23,7 +23,7 @@ intents.guilds = True  # 서버 정보 접근을 위해 필요
 # 봇 생성
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-model = YAINOMA(model_dir="/home/elicer/LLM_project_YAI/llm/llama/llama_weights/fine_tune_200_inst")
+model = YAINOMA(model_dir="devch1013/YAI-NOMA")
 default_model = YAINOMA()
 
 
@@ -116,11 +116,11 @@ async def on_message(message):
     if message.author == bot.user:
         return  # 봇 자신의 메시지에는 반응하지 않음
 
-    print("MESSAGE: ", message)
-    # 특정 명령어 체크
-    if message.content == '!뭐먹지':
+    # 머먹지 함수 호출 키워드 리스트
+    keywords = ['!뭐먹지', '!머먹지', '!뭐먹을까', '!머먹을까', '!맛집', '!맛집추천', '!밥']
+    if message.content in keywords:
         view = RestaurantSelection()
-        await message.channel.send("메뉴를 선택하세요: \n(선택 완료를 눌러야 응답이 출력됩니다.)", view=view)
+        await message.channel.send("메뉴를 선택하세요: \n(먼저 누르는 사람이 승자입니다)", view=view)
         return
 
     await bot.process_commands(message)  # 명령어도 함께 처리하기 위함
@@ -146,7 +146,7 @@ async def on_message(message):
         ].strip() 
         response, doc = default_model.paper_RAG(prompt)
         if doc is not None:
-            response = response + "\n참고 논문: " + doc["title"] + "\n논문 링크: " + doc["url"]
+            response = response + "\n\n**참고 논문**: " + doc["title"] + "\n**논문 링크**: " + doc["url"]
 
     else:
         greeting_keywords = ["hello", "hi", "안녕하세요", "안녕", "하이"]

@@ -85,7 +85,7 @@ class YAINOMA:
         return response
 
     def simple_qa(self, input_text):
-        return self.inference(system_prompt=self.system_prompt, input_text=input_text)
+        return self.inference(system_prompt=self.system_prompt, input_text=input_text)[:1900]
 
     def paper_RAG(self, query):
         """
@@ -95,7 +95,7 @@ class YAINOMA:
         import re
 
 # 영어 단어만 추출
-        english_words = re.findall(r'[a-zA-Z]+', query)
+        english_words = re.findall(r'[a-zA-Z0-9_]+', query)
         english_text = ' '.join(english_words)
         rake = Rake()
         rake.extract_keywords_from_text(english_text)
@@ -129,7 +129,9 @@ class YAINOMA:
         best_score = 0
         ## 문서 임베딩
         for doc in searched_docs:
+            
             title = doc["title"]
+            print("Searched title:", title)
             abstract = doc["abstract"]
             embedding = self.embeddings.embed_query(f"Title: {title}\n\n {abstract}")
             score = calculate_similarity(query_embedding, embedding)

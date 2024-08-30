@@ -1,0 +1,9 @@
+**/__pycache__
+.env_secret
+**/vectorstore
+**.csv
+llm/llama/outputs
+llm/llama/llama_weights
+rag/notion/data
+**/vectorstore**
+**.tar
